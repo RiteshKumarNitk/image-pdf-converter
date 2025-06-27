@@ -17,46 +17,67 @@ export async function convertImageToPDF(imageFile: File): Promise<Blob> {
 
     img.onload = () => {
       try {
-        // Set canvas to image dimensions
+        // Set canvas dimensions to match image
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        
+        // Draw image on canvas
+        ctx.drawImage(img, 0, 0);
+        
+        // Get image data
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        
+        // Calculate PDF dimensions (A4 aspect ratio consideration)
         const imgWidth = img.naturalWidth;
         const imgHeight = img.naturalHeight;
-
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
-        ctx.drawImage(img, 0, 0);
-
-        const imgData = canvas.toDataURL('image/jpeg', 1.0); // max quality
-
-        // Convert pixels to mm: 1 inch = 25.4 mm, 1 inch = 96 px => 1 px ≈ 0.26458 mm
-        const pxToMm = (px: number) => (px * 25.4) / 96;
-        const pdfWidth = pxToMm(imgWidth);
-        const pdfHeight = pxToMm(imgHeight);
-
-        // Create PDF exactly sized to the image
+        const ratio = imgWidth / imgHeight;
+        
+        let pdfWidth, pdfHeight;
+        
+        // Fit image to A4 size while maintaining aspect ratio
+        if (ratio > 1) {
+          // Landscape
+          pdfWidth = 297; // A4 width in mm
+          pdfHeight = 297 / ratio;
+        } else {
+          // Portrait
+          pdfHeight = 210; // A4 height in mm
+          pdfWidth = 210 * ratio;
+        }
+        
+        // Create PDF
         const pdf = new jsPDF({
-          orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+          orientation: ratio > 1 ? 'landscape' : 'portrait',
           unit: 'mm',
-          format: [pdfWidth, pdfHeight],
+          format: 'a4'
         });
-
-        // Add image without offset
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-        resolve(pdf.output('blob'));
+        
+        // Add image to PDF (center it)
+        const x = (pdf.internal.pageSize.getWidth() - pdfWidth) / 2;
+        const y = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
+        
+        pdf.addImage(imgData, 'JPEG', x, y, pdfWidth, pdfHeight);
+        
+        // Convert to blob
+        const pdfBlob = pdf.output('blob');
+        resolve(pdfBlob);
       } catch (error) {
         reject(error);
       }
     };
     
-      img.onerror = () => reject(new Error('Failed to load image'));
-
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
     
     // Load image
-   const reader = new FileReader();
+    const reader = new FileReader();
     reader.onload = (e) => {
       img.src = e.target?.result as string;
     };
-    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onerror = () => {
+      reject(new Error('Failed to read image file'));
+    };
     reader.readAsDataURL(imageFile);
   });
 }
@@ -75,9 +96,9 @@ export async function convertPDFToImages(pdfFile: File): Promise<Blob[]> {
       const originalWidth = viewport.width;
       const originalHeight = viewport.height;
 
-      // Calculate scale for 600 DPI (PDF uses 72 DPI as base)
-      // 600 DPI / 72 DPI = 8.3333x scale
-      const targetScale = 600 / 72;
+      // Calculate scale for 1200 DPI (PDF uses 72 DPI as base)
+      // 1200 DPI / 72 DPI = 16.6667x scale
+      const targetScale = 1200 / 72;
       
       // Check browser canvas limitations
       const maxDimension = Math.max(originalWidth, originalHeight) * targetScale;
@@ -86,7 +107,7 @@ export async function convertPDFToImages(pdfFile: File): Promise<Blob[]> {
       if (maxDimension > browserMaxSize) {
         throw new Error(
           `Page ${pageNum} dimensions (${Math.round(maxDimension)}px) exceed browser limits. ` +
-          `Try a smaller PDF or fewer pages.`
+          `Max supported: ${browserMaxSize}px. Reduce DPI or split PDF.`
         );
       }
 
@@ -111,6 +132,8 @@ export async function convertPDFToImages(pdfFile: File): Promise<Blob[]> {
         canvasContext: context,
         viewport: highResViewport,
         intent: 'print', // Higher quality rendering
+        enableWebGL: true,
+        imageLayer: true,
       };
       
       await page.render(renderContext).promise;
@@ -129,6 +152,6 @@ export async function convertPDFToImages(pdfFile: File): Promise<Blob[]> {
     
     return imageBlobs;
   } catch (error) {
-    throw new Error(`PDF conversion failed: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`PDF conversion failed: ${error instanceof Error ? error.message : error}`);
   }
 }

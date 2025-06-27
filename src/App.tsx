@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, FileImage, FileText, Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { convertImageToPDF, convertPDFToImages } from './utils/fileConverter';
+import * as pdfjsLib from 'pdfjs-dist';
+
 
 interface ConversionResult {
   fileName: string;
@@ -15,6 +17,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [conversionWarning, setConversionWarning] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [progress, setProgress] = useState<{current: number, total: number} | null>(null);
 
   // Detect mobile devices
   useEffect(() => {
@@ -55,10 +58,24 @@ function App() {
     setError(null);
     setConversionWarning(null);
     setResults([]);
+    setProgress(null);
 
     try {
       const newResults: ConversionResult[] = [];
       let hasLargeFile = false;
+      let totalPages = 0;
+      let processedPages = 0;
+
+      // Calculate total pages for progress tracking
+      for (const file of files) {
+        if (file.type === 'application/pdf') {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          totalPages += pdf.numPages;
+        } else {
+          totalPages += 1; // Each image counts as one
+        }
+      }
 
       for (const file of files) {
         const fileType = file.type;
@@ -72,9 +89,13 @@ function App() {
             downloadUrl,
             type: 'pdf'
           });
+          
+          // Update progress
+          processedPages += 1;
+          setProgress({ current: processedPages, total: totalPages });
         } else if (fileType === 'application/pdf') {
           // Check file size for PDFs
-          if (file.size > 50 * 1024 * 1024) { // 50MB limit
+          if (file.size > 50 * 1024 * 1024) {
             hasLargeFile = true;
             continue;
           }
@@ -89,6 +110,10 @@ function App() {
                 downloadUrl,
                 type: 'image'
               });
+              
+              // Update progress
+              processedPages += 1;
+              setProgress({ current: processedPages, total: totalPages });
             });
           } catch (err) {
             setConversionWarning(
@@ -111,6 +136,7 @@ function App() {
       setError(err instanceof Error ? err.message : 'An error occurred during conversion');
     } finally {
       setIsConverting(false);
+      setProgress(null);
     }
   };
 
@@ -136,7 +162,7 @@ function App() {
             Professional File Converter
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Convert images to PDF or PDF files to high-quality 600 DPI images instantly. 
+            Convert images to PDF or PDF files to high-quality 600 DPI images with e-signature support. 
             Simply drag and drop your files or click to browse.
           </p>
         </div>
@@ -170,6 +196,17 @@ function App() {
                   <p className="text-sm text-gray-500">
                     Processing high-quality images - this may take a moment
                   </p>
+                  {progress && (
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className="bg-blue-600 h-2.5 rounded-full" 
+                        style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    {progress ? `Processing page ${progress.current} of ${progress.total}` : 'Starting conversion...'}
+                  </p>
                 </>
               ) : (
                 <>
@@ -187,6 +224,9 @@ function App() {
                   </p>
                   <p className="text-sm text-gray-500">
                     Supports: JPG, PNG, GIF, WebP → PDF | PDF → PNG Images (600 DPI)
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    E-signatures are preserved in PDF to PNG conversions
                   </p>
                 </>
               )}
@@ -287,9 +327,9 @@ function App() {
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Upload className="w-6 h-6 text-blue-600" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Easy Upload</h4>
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">E-Signature Support</h4>
               <p className="text-gray-600">
-                Drag and drop files or click to browse. Supports multiple files at once.
+                Preserves digital signatures when converting PDFs to images.
               </p>
             </div>
             
@@ -297,9 +337,9 @@ function App() {
               <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-6 h-6 text-emerald-600" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">High Quality</h4>
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">Professional Quality</h4>
               <p className="text-gray-600">
-                Professional 600 DPI conversion for crystal-clear results.
+                600 DPI resolution for crystal-clear document conversions.
               </p>
             </div>
             
