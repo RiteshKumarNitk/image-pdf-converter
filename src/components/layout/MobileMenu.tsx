@@ -1,27 +1,28 @@
 import React from 'react';
-import { ToolType } from '../../types';
+import { Link } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { X } from 'lucide-react';
 
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTool: ToolType;
-  setActiveTool: (tool: ToolType) => void;
 }
 
 export const MobileMenu: React.FC<MobileMenuProps> = ({ 
   isOpen, 
-  onClose, 
-  activeTool, 
-  setActiveTool 
+  onClose
 }) => {
   if (!isOpen) return null;
 
-  const handleToolChange = (tool: ToolType) => {
-    setActiveTool(tool);
-    onClose();
-  };
+  const menuItems = [
+    { label: 'Home', path: '/' },
+    { label: 'Image to PDF', path: '/image-to-pdf' },
+    { label: 'PDF to Image', path: '/pdf-to-image' },
+    { label: 'Merge PDFs', path: '/merge-pdf' },
+    { label: 'Split PDF', path: '/pdf-splitter' },
+    { label: 'Compress PDF', path: '/pdf-compressor' },
+    { label: 'Compress Images', path: '/image-compressor' },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 md:hidden">
@@ -32,34 +33,16 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
           <Button variant="secondary" icon={<X />} onClick={onClose} />
         </div>
         <div className="p-4 space-y-2">
-          <Button
-            variant={activeTool === 'pdf' ? 'primary' : 'secondary'}
-            className="w-full"
-            onClick={() => handleToolChange('pdf')}
-          >
-            PDF Tools
-          </Button>
-          <Button
-            variant={activeTool === 'image' ? 'primary' : 'secondary'}
-            className="w-full"
-            onClick={() => handleToolChange('image')}
-          >
-            Image Tools
-          </Button>
-          <Button
-            variant={activeTool === 'signature' ? 'primary' : 'secondary'}
-            className="w-full"
-            onClick={() => handleToolChange('signature')}
-          >
-            E-Signatures
-          </Button>
-          <Button
-            variant={activeTool === 'merge' ? 'primary' : 'secondary'}
-            className="w-full"
-            onClick={() => handleToolChange('merge')}
-          >
-            Merge PDFs
-          </Button>
+          {menuItems.map((item) => (
+            <Link key={item.path} to={item.path} onClick={onClose}>
+              <Button
+                variant="secondary"
+                className="w-full text-left justify-start"
+              >
+                {item.label}
+              </Button>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

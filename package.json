@@ -10,12 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
+    "@types/react-router-dom": "^5.3.3",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.344.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.11.174",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-dropzone": "^14.3.8",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.6.3",
     "signature_pad": "^5.0.10"
   },
   "devDependencies": {
@@ -33,6 +38,6 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
+    "vite": "^5.4.19"
   }
 }

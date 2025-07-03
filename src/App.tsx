@@ -1,37 +1,41 @@
 import React from 'react';
-import { ToolType } from './types';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
-import { PdfTools } from './components/tools/PdfTools';
-import { ImageTools } from './components/tools/ImageTools';
-import { SignatureTools } from './components/tools/SignatureTools';
-import { MergeTools } from './components/tools/MergeTools';
+import { HomePage } from './pages/HomePage';
+import { ImageToPdfPage } from './pages/ImageToPdfPage';
+import { PdfToImagePage } from './pages/PdfToImagePage';
+import { MergePdfPage } from './pages/MergePdfPage';
+import { PdfSplitterPage } from './pages/PdfSplitterPage';
+import { PdfCompressorPage } from './pages/PdfCompressorPage';
+import { ImageCompressorPage } from './pages/ImageCompressorPage';
 import { useMobileDetection } from './hooks/useMobileDetection';
 
 export const App: React.FC = () => {
-  const [activeTool, setActiveTool] = React.useState<ToolType>('pdf');
   const isMobile = useMobileDetection();
+  const location = useLocation();
 
-  const renderTool = () => {
-    switch (activeTool) {
-      case 'pdf':
-        return <PdfTools />;
-      case 'image':
-        return <ImageTools isMobile={isMobile} />;
-      case 'signature':
-        return <SignatureTools />;
-      case 'merge':
-        return <MergeTools />;
-      default:
-        return <PdfTools />;
-    }
+  // Map routes to active tools for navbar highlighting
+  const getActiveToolFromPath = (pathname: string) => {
+    if (pathname.includes('image-to-pdf') || pathname.includes('pdf-to-image') || pathname.includes('image-compressor')) return 'image';
+    if (pathname.includes('merge-pdf') || pathname.includes('pdf-splitter') || pathname.includes('pdf-compressor')) return 'pdf';
+    return 'home';
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <Navbar activeTool={activeTool} setActiveTool={setActiveTool} />
+      <Navbar activeTool={getActiveToolFromPath(location.pathname)} />
       
       <div className="container mx-auto px-4 py-8">
-        {renderTool()}
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/image-to-pdf" element={<ImageToPdfPage isMobile={isMobile} />} />
+          <Route path="/pdf-to-image" element={<PdfToImagePage isMobile={isMobile} />} />
+          <Route path="/merge-pdf" element={<MergePdfPage isMobile={isMobile} />} />
+          <Route path="/pdf-splitter" element={<PdfSplitterPage isMobile={isMobile} />} />
+          <Route path="/pdf-compressor" element={<PdfCompressorPage isMobile={isMobile} />} />
+          <Route path="/image-compressor" element={<ImageCompressorPage isMobile={isMobile} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </div>
   );
